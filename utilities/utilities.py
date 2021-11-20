@@ -1,9 +1,11 @@
 import sys
-from typing import Dict, List
+import random
+import string
 import boto3
 sys.path.append('.')
-from base_modules.base import BaseObject
+from base_modules.base import BaseObject, command_sleep
 from pathlib import Path
+from typing import Dict, List
 
 class Utilities(BaseObject):
     def __init__(self):
@@ -15,6 +17,7 @@ class Utilities(BaseObject):
             
 
     def object_count_in_bucket(self, bucket_path: str) -> int:
+        ''' Returns object count in a bucket'''
         bucket = self.s3.Bucket(bucket_path)
         object_count = 0
         for i in bucket.objects.all():
@@ -30,6 +33,7 @@ class Utilities(BaseObject):
         return folders
 
     def get_bucket_objects_list(self, bucket_path: str) -> List[Dict, str, List]:
+        '''Returns objects in a bucket'''
         response = self.s3client.list_objects(Bucket=bucket_path)['Contents']
         return response
 
@@ -41,7 +45,8 @@ class Utilities(BaseObject):
         file_name : file_name
         '''
         try:
-            s3_upload_result = self.s3client.put_object(Bucket=s3_root_path, Key=path, Body=open(f'{file_name}', 'rb'))
+            with command_sleep(after=10):
+                s3_upload_result = self.s3client.put_object(Bucket=s3_root_path, Key=path, Body=open(f'{file_name}', 'rb'))
             if s3_upload_result['ResponseMetadata']['HTTPStatusCode'] == 200:
                 return True, 200
             else:
@@ -55,11 +60,19 @@ class Utilities(BaseObject):
         Downloads file from s3 with given s3_root_path, file_path and file_name.
         '''
         try:
-            self.s3client.download_file(Bucket=s3_root_path, Key=file_path, Filename=file_name)
+            with command_sleep(after=10):
+                self.s3client.download_file(Bucket=s3_root_path, Key=file_path, Filename=file_name)
         except Exception as ex:
             print("Failed to download: %s", str(ex))
             return False
         return True
+
+    def random_string(string_length: int = 10) -> str:
+        """
+        Generate a random string of fixed length to use as a unique id.
+        """
+        letters = string.ascii_lowercase
+        return ''.join(random.choice(letters) for i in range(string_length))
 
 
 ut = Utilities()
